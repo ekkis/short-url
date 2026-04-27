@@ -110,15 +110,20 @@ app.get('/u', (_req, res) => {
             border-radius: 8px;
             font-size: 16px;
         }
-        .field button {
-            padding: 12px 18px;
+        .field button,
+        .copy-btn {
+            padding: 10px 16px;
             border: none;
             border-radius: 8px;
-            background: #2563eb;
+            font-size: 14px;
+            line-height: 1.2;
+            min-height: 40px;
             color: white;
-            font-size: 16px;
             cursor: pointer;
             transition: background 0.2s ease;
+        }
+        .field button {
+            background: #2563eb;
         }
         .field button:hover {
             background: #1d4ed8;
@@ -138,13 +143,7 @@ app.get('/u', (_req, res) => {
             background: #f9fafb;
         }
         .copy-btn {
-            padding: 12px 18px;
-            border: none;
-            border-radius: 8px;
             background: #16a34a;
-            color: white;
-            cursor: pointer;
-            transition: background 0.2s ease;
         }
         .copy-btn.copied {
             background: #15803d;
