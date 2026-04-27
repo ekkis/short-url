@@ -1,0 +1,37 @@
+[Unit]
+Description=URL Shortener Service
+After=network.target
+
+[Service]
+Type=simple
+User=shorturl
+WorkingDirectory=/opt/short-url
+ExecStart=/usr/bin/node /opt/short-url/server.js
+Restart=on-failure
+RestartSec=5s
+
+# Environment variables
+Environment="PORT=3000"
+Environment="BASE_URL=https://ekkis.id"
+Environment="DB_PATH=/var/lib/short-url/urls.db"
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=32768
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=short-url
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
