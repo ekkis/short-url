@@ -111,7 +111,7 @@ app.get('/u', (_req, res) => {
             font-size: 16px;
         }
         .field button {
-            padding: 14px 20px;
+            padding: 12px 18px;
             border: none;
             border-radius: 8px;
             background: #2563eb;
