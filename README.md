@@ -175,13 +175,19 @@ CREATE UNIQUE INDEX idx_urls_long_url ON urls(long_url);
 
 ## Deployment
 
-### Production Setup with Systemd and Nginx
+### Ubuntu with Systemd and Nginx
 
-This is the recommended production setup. It includes automatic service restart, systemd integration, and a reverse proxy.
+This is the recommended production setup for Ubuntu. It includes automatic service restart, systemd integration, and a reverse proxy.
 
 #### Step 1: Prepare the Application
 
 ```bash
+# Update system packages
+sudo apt-get update && sudo apt-get upgrade -y
+
+# Install Node.js (if not already installed)
+sudo apt-get install -y nodejs npm
+
 # Create application directory
 sudo mkdir -p /opt/short-url /var/lib/short-url
 
@@ -190,7 +196,7 @@ sudo useradd -r -m -d /opt/short-url shorturl
 
 # Copy application files
 sudo cp server.js package.json package-lock.json /opt/short-url/
-sudo cp short-url.service /etc/systemd/system/
+sudo cp service /etc/systemd/system/short-url.service
 
 # Set permissions
 sudo chown -R shorturl:shorturl /opt/short-url /var/lib/short-url
@@ -223,6 +229,9 @@ sudo journalctl -u short-url -f
 #### Step 3: Configure Nginx Reverse Proxy
 
 ```bash
+# Install Nginx (if not already installed)
+sudo apt-get install -y nginx
+
 # Copy nginx configuration
 sudo cp nginx.conf /etc/nginx/sites-available/short-url
 
@@ -248,7 +257,7 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-#### Service Management
+#### Service Management (Ubuntu)
 
 ```bash
 # View service status
@@ -269,13 +278,13 @@ sudo journalctl -u short-url -f
 sudo systemctl status short-url
 ```
 
-#### SSL/TLS Configuration
+#### SSL/TLS Configuration (Ubuntu)
 
 For HTTPS, use Let's Encrypt with Certbot:
 
 ```bash
 # Install certbot
-sudo apt-get install certbot python3-certbot-nginx
+sudo apt-get install -y certbot python3-certbot-nginx
 
 # Obtain certificate
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
@@ -284,7 +293,144 @@ sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 sudo systemctl status certbot.timer
 ```
 
-### Alternative: Quick Start with PM2
+### Alpine Linux with OpenRC and Nginx
+
+Alpine is ideal for containerized deployments and lightweight servers. It uses OpenRC instead of systemd.
+
+#### Step 1: Prepare the Application
+
+```bash
+# Update system packages
+sudo apk update && sudo apk upgrade
+
+# Install Node.js and npm
+sudo apk add --no-cache nodejs npm
+
+# Create application directory
+sudo mkdir -p /opt/short-url /var/lib/short-url
+
+# Create dedicated service user
+sudo addgroup -S shorturl
+sudo adduser -S -D -H -h /opt/short-url -s /sbin/nologin -G shorturl -g shorturl shorturl
+
+# Copy application files
+sudo cp server.js package.json package-lock.json /opt/short-url/
+sudo cp openrc /etc/init.d/short-url
+
+# Set permissions
+sudo chown -R shorturl:shorturl /opt/short-url /var/lib/short-url
+sudo chmod 755 /opt/short-url /var/lib/short-url
+
+# Install dependencies
+cd /opt/short-url
+sudo npm install --production
+```
+
+#### Step 2: Install OpenRC Service
+
+```bash
+# Copy the OpenRC init script
+sudo cp openrc /etc/init.d/short-url
+
+# Edit the configuration to match your domain
+sudo vi /etc/init.d/short-url
+```
+
+Update the environment variables in the script:
+```bash
+export PORT=3000
+export BASE_URL=https://yourdomain.com
+export DB_PATH=/var/lib/short-url/urls.db
+```
+
+Then make it executable:
+
+```bash
+# Make it executable
+sudo chmod +x /etc/init.d/short-url
+```
+
+#### Step 3: Enable and Start Service
+
+```bash
+# Enable service to start on boot
+sudo rc-update add short-url default
+
+# Start the service
+sudo rc-service short-url start
+
+# Verify it's running
+sudo rc-service short-url status
+
+# View logs
+sudo tail -f /var/log/messages
+```
+
+#### Step 4: Configure Nginx Reverse Proxy
+
+```bash
+# Install Nginx
+sudo apk add --no-cache nginx
+
+# Copy nginx configuration
+sudo cp nginx.conf /etc/nginx/http.d/short-url.conf
+
+# Edit the configuration to match your domain(s)
+sudo vi /etc/nginx/http.d/short-url.conf
+```
+
+Update the `server_name` directive to your domain(s):
+```nginx
+server_name yourdomain.com www.yourdomain.com;
+```
+
+Then enable and restart nginx:
+
+```bash
+# Test nginx configuration
+sudo nginx -t
+
+# Enable nginx on boot
+sudo rc-update add nginx default
+
+# Start/restart nginx
+sudo rc-service nginx restart
+```
+
+#### Service Management (Alpine)
+
+```bash
+# View service status
+sudo rc-service short-url status
+
+# Start/stop/restart service
+sudo rc-service short-url start
+sudo rc-service short-url stop
+sudo rc-service short-url restart
+
+# View logs
+sudo tail -f /var/log/messages
+
+# Follow supervisor logs (if configured)
+sudo tail -f /var/log/short-url.log
+```
+
+#### SSL/TLS Configuration (Alpine)
+
+For HTTPS with Let's Encrypt:
+
+```bash
+# Install certbot
+sudo apk add --no-cache certbot certbot-nginx
+
+# Obtain certificate
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+
+# Set up auto-renewal with cron
+sudo apk add --no-cache certbot-nginx-renewal
+```
+
+### Quick Start with PM2
 
 For development or simpler setups, use PM2:
 
@@ -306,6 +452,24 @@ pm2 logs url-shortener
 pm2 restart url-shortener
 pm2 stop url-shortener
 pm2 delete url-shortener
+```
+
+### Docker Deployment
+
+For containerized deployments using Alpine:
+
+```bash
+# Build image
+docker build -t short-url:latest .
+
+# Run container
+docker run -d \
+  --name short-url \
+  -p 3000:3000 \
+  -e PORT=3000 \
+  -e BASE_URL=https://yourdomain.com \
+  -v short-url-data:/var/lib/short-url \
+  short-url:latest
 ```
 
 ## How It Works

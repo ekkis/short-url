@@ -1,0 +1,32 @@
+#!/sbin/openrc-run
+
+description="URL Shortener Service"
+command="/usr/bin/node"
+command_args="/opt/short-url/server.js"
+command_user="shorturl"
+pidfile="/run/short-url.pid"
+
+# Logging configuration
+stdout_logger="exec logger -t $RC_SVCNAME"
+stderr_logger="exec logger -t $RC_SVCNAME"
+
+# Environment variables
+export PORT=3000
+export BASE_URL=https://yourdomain.com
+export DB_PATH=/var/lib/short-url/urls.db
+
+# Service dependencies
+depend() {
+    need net
+    after firewall
+}
+
+# Pre-start checks
+start_pre() {
+    cd /opt/short-url
+}
+
+# Post-stop cleanup
+stop_post() {
+    rm -f $pidfile
+}
