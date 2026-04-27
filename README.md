@@ -57,63 +57,39 @@ PORT=8080 BASE_URL=https://short.example.com npm start
 
 ### Create/Get Short URL
 
-**Endpoint**: `GET /u/s/<url>`
+**Endpoint**: `GET /u/<url>`
 
-Creates a new shortened URL or returns an existing one for the same long URL.
+Creates a new shortened URL or returns an existing one. Returns only the short URL as plain text.
 
 **Parameters**:
-- `url` (path): URL-encoded or plain URL to shorten
+- `url` (path): URL to shorten (will be auto-detected)
 
-**Response** (201 Created):
-```json
-{
-  "short_url": "https://ekkis.id/u/g/abc123",
-  "slug": "abc123",
-  "long_url": "https://example.com/very/long/path",
-  "reused": false
-}
+**Response** (plain text):
+```
+https://ekkis.id/u/abc123
 ```
 
-**Response** (when reusing existing slug):
-```json
-{
-  "short_url": "https://ekkis.id/u/g/abc123",
-  "slug": "abc123",
-  "long_url": "https://example.com/very/long/path",
-  "created_at": "2024-01-15T10:30:00Z",
-  "reused": true
-}
-```
+### Create Short URL with Web Interface
+
+**Endpoint**: `GET /u/w/<url>`
+
+Creates a shortened URL and returns an HTML page with a copy button and auto-copy functionality.
+
+**Parameters**:
+- `url` (path): URL to shorten
+
+**Response**: HTML page with short URL display and copy functionality
 
 ### Redirect to Original URL
 
-**Endpoint**: `GET /u/g/<slug>`
+**Endpoint**: `GET /u/<slug>`
 
-Redirects to the original long URL and increments the hit counter.
+Redirects to the original long URL and increments the hit counter. The slug is auto-detected as not being a URL.
 
 **Parameters**:
 - `slug` (path): Short slug identifier
 
 **Response**: 302 redirect to original URL
-
-### Get URL Info
-
-**Endpoint**: `GET /u/g/<slug>/info`
-
-Retrieves metadata about a shortened URL without redirecting.
-
-**Parameters**:
-- `slug` (path): Short slug identifier
-
-**Response** (200 OK):
-```json
-{
-  "short_url": "https://ekkis.id/u/g/abc123",
-  "long_url": "https://example.com/very/long/path",
-  "created_at": "2024-01-15T10:30:00Z",
-  "hit_count": 42
-}
-```
 
 ### Health Check
 
@@ -133,20 +109,22 @@ Returns server status.
 ### Create a short URL
 
 ```bash
-curl "http://localhost:3000/u/s/https://example.com/very/long/url"
+curl "http://localhost:3000/u/https://example.com/very/long/url"
+# Returns: https://ekkis.id/u/abc123
+```
+
+### Create short URL with web interface
+
+```bash
+# Open in browser for HTML interface with copy button
+curl "http://localhost:3000/u/w/https://example.com/very/long/url"
 ```
 
 ### Open a shortened URL
 
 ```bash
-# Browser
-curl -L "http://localhost:3000/u/g/abc123"
-```
-
-### Check statistics
-
-```bash
-curl "http://localhost:3000/u/g/abc123/info"
+# Browser redirect
+curl -L "http://localhost:3000/u/abc123"
 ```
 
 ## Database Schema
@@ -474,11 +452,13 @@ docker run -d \
 
 ## How It Works
 
-1. **URL Normalization**: Input URLs are decoded, normalized, and validated to ensure they use http/https protocols
-2. **Slug Generation**: Random 5-byte slugs are generated using base62 encoding of crypto-random bytes
-3. **Duplicate Detection**: Before storing a new URL, the system checks if it has already been shortened
-4. **Reuse**: If a duplicate is found, the existing slug is returned without creating a new entry
-5. **Tracking**: Each redirect increments the hit counter for analytics
+1. **Smart Detection**: The system automatically detects whether `/u/<param>` is a URL to shorten or a slug to redirect based on URL patterns
+2. **URL Normalization**: Input URLs are decoded, normalized, and validated to ensure they use http/https protocols
+3. **Slug Generation**: Random 5-byte slugs are generated using base62 encoding of crypto-random bytes
+4. **Duplicate Detection**: Before storing a new URL, the system checks if it has already been shortened
+5. **Reuse**: If a duplicate is found, the existing slug is returned without creating a new entry
+6. **Tracking**: Each redirect increments the hit counter for analytics
+7. **Web Interface**: The `/u/w/` endpoint provides a user-friendly HTML interface with copy-to-clipboard functionality
 
 ## Dependencies
 
