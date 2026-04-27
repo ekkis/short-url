@@ -62,12 +62,6 @@ function createUniqueSlug() {
     if (!findBySlug.get(slug)) return slug;
   }
   throw new Error('Could not generate unique slug');
-}
-
-app.get('/health', (_req, res) => {
-  res.json({ ok: true });
-});
-
 function isUrl(str) {
   return /^https?:\/\//i.test(str) || /^[^\s\/]+\.[^\s\/]+/i.test(str);
 }
