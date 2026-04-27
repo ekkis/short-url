@@ -72,24 +72,8 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/u/w/*', (req, res) => {
-  const rawUrl = req.params[0];
-
-  try {
-    const longUrl = normalizeInput(rawUrl);
-    const existing = findByLongUrl.get(longUrl);
-    let slug, shortUrl;
-
-    if (existing) {
-      slug = existing.slug;
-      shortUrl = `${BASE_URL}/u/${existing.slug}`;
-    } else {
-      slug = createUniqueSlug();
-      insertUrl.run(slug, longUrl);
-      shortUrl = `${BASE_URL}/u/${slug}`;
-    }
-
-    const html = `<!DOCTYPE html>
+app.get('/u', (_req, res) => {
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -98,7 +82,7 @@ app.get('/u/w/*', (req, res) => {
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 600px;
+            max-width: 640px;
             margin: 50px auto;
             padding: 20px;
             background: #f5f5f5;
@@ -107,92 +91,124 @@ app.get('/u/w/*', (req, res) => {
             background: white;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
         }
         h1 {
-            color: #333;
+            color: #222;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
         }
-        .url-display {
+        .field {
             display: flex;
             gap: 10px;
-            margin: 20px 0;
+            margin-bottom: 16px;
         }
-        .url-input {
+        .field input {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .field button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .field button:hover {
+            background: #1d4ed8;
+        }
+        .result {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .result input {
             flex: 1;
             padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             font-size: 16px;
-            background: #f9f9f9;
+            background: #f9fafb;
         }
         .copy-btn {
-            padding: 12px 20px;
-            background: #007bff;
-            color: white;
+            padding: 12px 18px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
+            background: #16a34a;
+            color: white;
             cursor: pointer;
-            font-size: 16px;
-            transition: background 0.2s;
-        }
-        .copy-btn:hover {
-            background: #0056b3;
+            transition: background 0.2s ease;
         }
         .copy-btn.copied {
-            background: #28a745;
+            background: #15803d;
         }
-        .info {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e9ecef;
-            border-radius: 5px;
+        .hint {
+            margin-top: 16px;
+            color: #4b5563;
             font-size: 14px;
-        }
-        .stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔗 URL Shortener</h1>
-
-        <div class="url-display">
-            <input type="text" class="url-input" id="shortUrl" value="${shortUrl}" readonly>
-            <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">Copy</button>
+        <h1>URL Shortener</h1>
+        <div class="field">
+            <input id="urlInput" type="text" placeholder="Enter a URL to shorten" autofocus>
+            <button id="createBtn">Create</button>
         </div>
-
-        <div class="info">
-            <p><strong>Original URL:</strong> ${longUrl}</p>
-            <div class="stats">
-                <span><strong>Slug:</strong> ${slug}</span>
-                <span><strong>Status:</strong> ${existing ? 'Reused existing' : 'Newly created'}</span>
-            </div>
+        <div class="result" style="display: none;">
+            <input id="shortUrl" type="text" readonly>
+            <button id="copyBtn" class="copy-btn">Copy</button>
         </div>
+        <div class="hint">Paste a full URL, then click Create. The shortened URL will be copied automatically.</div>
     </div>
-
     <script>
-        function copyToClipboard() {
-            const urlInput = document.getElementById('shortUrl');
-            const copyBtn = document.getElementById('copyBtn');
+        const urlInput = document.getElementById('urlInput');
+        const createBtn = document.getElementById('createBtn');
+        const shortUrlInput = document.getElementById('shortUrl');
+        const copyBtn = document.getElementById('copyBtn');
+        const resultSection = document.querySelector('.result');
 
-            navigator.clipboard.writeText(urlInput.value).then(() => {
+        async function createShortUrl() {
+            const rawUrl = urlInput.value.trim();
+            if (!rawUrl) return;
+
+            const encoded = encodeURIComponent(rawUrl);
+            try {
+                const response = await fetch('/u/' + encoded);
+                if (!response.ok) {
+                    const text = await response.text();
+                    alert(text || 'Unable to shorten URL');
+                    return;
+                }
+
+                const shortUrl = await response.text();
+                shortUrlInput.value = shortUrl;
+                resultSection.style.display = 'flex';
+                copyToClipboard(shortUrl);
+            } catch (error) {
+                alert('Unable to shorten URL');
+            }
+        }
+
+        function copyToClipboard(text) {
+            const content = text || shortUrlInput.value;
+            navigator.clipboard.writeText(content).then(() => {
                 copyBtn.textContent = 'Copied!';
                 copyBtn.classList.add('copied');
-
-                // Reset button after 2 seconds
                 setTimeout(() => {
                     copyBtn.textContent = 'Copy';
                     copyBtn.classList.remove('copied');
                 }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                // Fallback for older browsers
-                urlInput.select();
+            }).catch(() => {
+                shortUrlInput.select();
                 document.execCommand('copy');
                 copyBtn.textContent = 'Copied!';
                 copyBtn.classList.add('copied');
@@ -203,19 +219,17 @@ app.get('/u/w/*', (req, res) => {
             });
         }
 
-        // Auto-copy on page load
-        window.addEventListener('load', () => {
-            setTimeout(copyToClipboard, 500);
+        createBtn.addEventListener('click', createShortUrl);
+        urlInput.addEventListener('keydown', event => {
+            if (event.key === 'Enter') createShortUrl();
         });
+        copyBtn.addEventListener('click', () => copyToClipboard());
     </script>
 </body>
 </html>`;
 
-    res.set('Content-Type', 'text/html');
-    return res.send(html);
-  } catch (error) {
-    return res.status(400).send(`Error: ${error.message}`);
-  }
+  res.set('Content-Type', 'text/html');
+  res.send(html);
 });
 
 app.get('/u/*', (req, res) => {
@@ -253,8 +267,8 @@ app.use((req, res) => {
   res.status(404).json({
     error: 'Not found',
     usage: {
+      ui: `${BASE_URL}/u`,
       create: `${BASE_URL}/u/<url>`,
-      create_web: `${BASE_URL}/u/w/<url>`,
       open: `${BASE_URL}/u/<slug>`
     }
   });
