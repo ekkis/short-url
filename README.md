@@ -57,7 +57,7 @@ PORT=8080 BASE_URL=https://short.example.com npm start
 
 ### Create/Get Short URL
 
-**Endpoint**: `GET /s/<url>`
+**Endpoint**: `GET /u/s/<url>`
 
 Creates a new shortened URL or returns an existing one for the same long URL.
 
@@ -67,7 +67,7 @@ Creates a new shortened URL or returns an existing one for the same long URL.
 **Response** (201 Created):
 ```json
 {
-  "short_url": "https://ekkis.id/u/abc123",
+  "short_url": "https://ekkis.id/u/g/abc123",
   "slug": "abc123",
   "long_url": "https://example.com/very/long/path",
   "reused": false
@@ -77,7 +77,7 @@ Creates a new shortened URL or returns an existing one for the same long URL.
 **Response** (when reusing existing slug):
 ```json
 {
-  "short_url": "https://ekkis.id/u/abc123",
+  "short_url": "https://ekkis.id/u/g/abc123",
   "slug": "abc123",
   "long_url": "https://example.com/very/long/path",
   "created_at": "2024-01-15T10:30:00Z",
@@ -87,7 +87,7 @@ Creates a new shortened URL or returns an existing one for the same long URL.
 
 ### Redirect to Original URL
 
-**Endpoint**: `GET /u/<slug>`
+**Endpoint**: `GET /u/g/<slug>`
 
 Redirects to the original long URL and increments the hit counter.
 
@@ -98,7 +98,7 @@ Redirects to the original long URL and increments the hit counter.
 
 ### Get URL Info
 
-**Endpoint**: `GET /u/<slug>/info`
+**Endpoint**: `GET /u/g/<slug>/info`
 
 Retrieves metadata about a shortened URL without redirecting.
 
@@ -108,7 +108,7 @@ Retrieves metadata about a shortened URL without redirecting.
 **Response** (200 OK):
 ```json
 {
-  "short_url": "https://ekkis.id/u/abc123",
+  "short_url": "https://ekkis.id/u/g/abc123",
   "long_url": "https://example.com/very/long/path",
   "created_at": "2024-01-15T10:30:00Z",
   "hit_count": 42
@@ -133,20 +133,20 @@ Returns server status.
 ### Create a short URL
 
 ```bash
-curl "http://localhost:3000/s/https://example.com/very/long/url"
+curl "http://localhost:3000/u/s/https://example.com/very/long/url"
 ```
 
 ### Open a shortened URL
 
 ```bash
 # Browser
-curl -L "http://localhost:3000/u/abc123"
+curl -L "http://localhost:3000/u/g/abc123"
 ```
 
 ### Check statistics
 
 ```bash
-curl "http://localhost:3000/u/abc123/info"
+curl "http://localhost:3000/u/g/abc123/info"
 ```
 
 ## Database Schema

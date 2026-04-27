@@ -68,14 +68,14 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/s/*', (req, res) => {
+app.get('/u/s/*', (req, res) => {
   try {
     const rawTarget = req.params[0];
     const longUrl = normalizeInput(rawTarget);
     const existing = findByLongUrl.get(longUrl);
     if (existing) {
       return res.json({
-        short_url: `${BASE_URL}/u/${existing.slug}`,
+        short_url: `${BASE_URL}/u/g/${existing.slug}`,
         slug: existing.slug,
         long_url: existing.long_url,
         created_at: existing.created_at,
@@ -87,7 +87,7 @@ app.get('/s/*', (req, res) => {
     insertUrl.run(slug, longUrl);
 
     return res.status(201).json({
-      short_url: `${BASE_URL}/u/${slug}`,
+      short_url: `${BASE_URL}/u/g/${slug}`,
       slug,
       long_url: longUrl,
       reused: false
@@ -97,7 +97,7 @@ app.get('/s/*', (req, res) => {
   }
 });
 
-app.get('/u/:slug', (req, res) => {
+app.get('/u/g/:slug', (req, res) => {
   const { slug } = req.params;
   const row = findBySlug.get(slug);
 
@@ -109,13 +109,13 @@ app.get('/u/:slug', (req, res) => {
   return res.redirect(302, row.long_url);
 });
 
-app.get('/u/:slug/info', (req, res) => {
+app.get('/u/g/:slug/info', (req, res) => {
   const row = findBySlug.get(req.params.slug);
   if (!row) {
     return res.status(404).json({ error: 'Short URL not found' });
   }
   return res.json({
-    short_url: `${BASE_URL}/u/${row.slug}`,
+    short_url: `${BASE_URL}/u/g/${row.slug}`,
     long_url: row.long_url,
     created_at: row.created_at,
     hit_count: row.hit_count
@@ -126,8 +126,8 @@ app.use((req, res) => {
   res.status(404).json({
     error: 'Not found',
     usage: {
-      create: `${BASE_URL}/s/<url-encoded-or-plain-url>`,
-      open: `${BASE_URL}/u/<slug>`
+      create: `${BASE_URL}/u/s/<url-encoded-or-plain-url>`,
+      open: `${BASE_URL}/u/g/<slug>`
     }
   });
 });

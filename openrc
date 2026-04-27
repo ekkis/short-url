@@ -1,10 +1,15 @@
 #!/sbin/openrc-run
 
+name="short-url"
 description="URL Shortener Service"
+
 command="/usr/bin/node"
 command_args="/opt/short-url/server.js"
-command_user="shorturl"
-pidfile="/run/short-url.pid"
+command_user="shorturl:shorturl"
+directory="/opt/short-url"
+
+command_background=true
+pidfile="/run/${RC_SVCNAME}.pid"
 
 # Logging configuration
 stdout_logger="exec logger -t $RC_SVCNAME"
@@ -23,10 +28,6 @@ depend() {
 
 # Pre-start checks
 start_pre() {
-    cd /opt/short-url
-}
-
-# Post-stop cleanup
-stop_post() {
-    rm -f $pidfile
+    checkpath -d -o shorturl:shorturl /run
+    checkpath -d -o shorturl:shorturl /var/lib/short-url
 }
