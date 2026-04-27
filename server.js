@@ -62,6 +62,8 @@ function createUniqueSlug() {
     if (!findBySlug.get(slug)) return slug;
   }
   throw new Error('Could not generate unique slug');
+}
+
 function isUrl(str) {
   return /^https?:\/\//i.test(str) || /^[^\s\/]+\.[^\s\/]+/i.test(str);
 }
@@ -70,42 +72,11 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/u/:param', (req, res) => {
-  const { param } = req.params;
-
-  // If it looks like a URL, create a short URL
-  if (isUrl(param)) {
-    try {
-      const longUrl = normalizeInput(param);
-      const existing = findByLongUrl.get(longUrl);
-      if (existing) {
-        return res.send(`${BASE_URL}/u/${existing.slug}`);
-      }
-
-      const slug = createUniqueSlug();
-      insertUrl.run(slug, longUrl);
-
-      return res.send(`${BASE_URL}/u/${slug}`);
-    } catch (error) {
-      return res.status(400).send(`Error: ${error.message}`);
-    }
-  }
-
-  // Otherwise, treat it as a slug and redirect
-  const row = findBySlug.get(param);
-  if (!row) {
-    return res.status(404).send('Short URL not found');
-  }
-
-  incrementHits.run(param);
-  return res.redirect(302, row.long_url);
-});
-
-app.get('/u/w/:url', (req, res) => {
-  const { url } = req.params;
+app.get('/u/w/*', (req, res) => {
+  const rawUrl = req.params[0];
 
   try {
-    const longUrl = normalizeInput(url);
+    const longUrl = normalizeInput(rawUrl);
     const existing = findByLongUrl.get(longUrl);
     let slug, shortUrl;
 
@@ -245,6 +216,37 @@ app.get('/u/w/:url', (req, res) => {
   } catch (error) {
     return res.status(400).send(`Error: ${error.message}`);
   }
+});
+
+app.get('/u/*', (req, res) => {
+  const rawParam = req.params[0];
+  const param = decodeURIComponent(rawParam || '').trim();
+
+  // If it looks like a URL, create a short URL
+  if (isUrl(param) || param.includes('/')) {
+    try {
+      const longUrl = normalizeInput(param);
+      const existing = findByLongUrl.get(longUrl);
+      if (existing) {
+        return res.send(`${BASE_URL}/u/${existing.slug}`);
+      }
+
+      const slug = createUniqueSlug();
+      insertUrl.run(slug, longUrl);
+
+      return res.send(`${BASE_URL}/u/${slug}`);
+    } catch (error) {
+      return res.status(400).send(`Error: ${error.message}`);
+    }
+  }
+
+  const row = findBySlug.get(param);
+  if (!row) {
+    return res.status(404).send('Short URL not found');
+  }
+
+  incrementHits.run(param);
+  return res.redirect(302, row.long_url);
 });
 
 app.use((req, res) => {
