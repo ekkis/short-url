@@ -21,12 +21,22 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_urls_slug ON urls(slug);
   CREATE UNIQUE INDEX IF NOT EXISTS idx_urls_long_url ON urls(long_url);
+  CREATE TABLE IF NOT EXISTS slug_aliases (
+    slug TEXT PRIMARY KEY,
+    target_slug TEXT NOT NULL
+  );
 `);
 
 const insertUrl = db.prepare('INSERT INTO urls (slug, long_url) VALUES (?, ?)');
 const findBySlug = db.prepare('SELECT slug, long_url, created_at, hit_count FROM urls WHERE slug = ?');
+const findByAlias = db.prepare(`
+  SELECT urls.slug, urls.long_url, urls.created_at, urls.hit_count
+  FROM slug_aliases JOIN urls ON urls.slug = slug_aliases.target_slug
+  WHERE slug_aliases.slug = ?
+`);
 const findByLongUrl = db.prepare('SELECT id, slug, long_url, created_at, hit_count FROM urls WHERE long_url = ?');
 const updateSlug = db.prepare('UPDATE urls SET slug = ? WHERE id = ?');
+const insertAlias = db.prepare('INSERT OR REPLACE INTO slug_aliases (slug, target_slug) VALUES (?, ?)');
 const incrementHits = db.prepare('UPDATE urls SET hit_count = hit_count + 1 WHERE slug = ?');
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyz';
@@ -69,6 +79,7 @@ function createUniqueSlug() {
 function ensureCurrentSlug(existing) {
   if (/^[a-z0-9]{4}$/.test(existing.slug)) return existing.slug;
   const slug = createUniqueSlug();
+  insertAlias.run(existing.slug, slug);
   updateSlug.run(slug, existing.id);
   return slug;
 }
@@ -271,12 +282,12 @@ app.get('/u/*', (req, res) => {
     }
   }
 
-  const row = findBySlug.get(param);
+  const row = findBySlug.get(param) || findByAlias.get(param);
   if (!row) {
     return res.status(404).send('Short URL not found');
   }
 
-  incrementHits.run(param);
+  incrementHits.run(row.slug);
   return res.redirect(302, row.long_url);
 });
 
