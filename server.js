@@ -25,7 +25,8 @@ db.exec(`
 
 const insertUrl = db.prepare('INSERT INTO urls (slug, long_url) VALUES (?, ?)');
 const findBySlug = db.prepare('SELECT slug, long_url, created_at, hit_count FROM urls WHERE slug = ?');
-const findByLongUrl = db.prepare('SELECT slug, long_url, created_at, hit_count FROM urls WHERE long_url = ?');
+const findByLongUrl = db.prepare('SELECT id, slug, long_url, created_at, hit_count FROM urls WHERE long_url = ?');
+const updateSlug = db.prepare('UPDATE urls SET slug = ? WHERE id = ?');
 const incrementHits = db.prepare('UPDATE urls SET hit_count = hit_count + 1 WHERE slug = ?');
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyz';
@@ -65,6 +66,13 @@ function createUniqueSlug() {
   throw new Error('Could not generate unique slug');
 }
 
+function ensureCurrentSlug(existing) {
+  if (/^[a-z0-9]{4}$/.test(existing.slug)) return existing.slug;
+  const slug = createUniqueSlug();
+  updateSlug.run(slug, existing.id);
+  return slug;
+}
+
 function isUrl(str) {
   return /^https?:\/\//i.test(str) || /^[^\s\/]+\.[^\s\/]+/i.test(str);
 }
@@ -72,7 +80,7 @@ function isUrl(str) {
 function createShortUrl(rawUrl) {
   const longUrl = normalizeInput(rawUrl);
   const existing = findByLongUrl.get(longUrl);
-  if (existing) return `${BASE_URL}/u/${existing.slug}`;
+  if (existing) return `${BASE_URL}/u/${ensureCurrentSlug(existing)}`;
 
   const slug = createUniqueSlug();
   insertUrl.run(slug, longUrl);
