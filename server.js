@@ -42,7 +42,7 @@ function toBase62(buffer) {
 }
 
 function generateSlug(size = 4) {
-  return toBase62(crypto.randomBytes(size)).slice(0, size + 2);
+  return toBase62(crypto.randomBytes(size)).slice(0, size);
 }
 
 function normalizeInput(raw) {
