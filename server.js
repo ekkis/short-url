@@ -41,7 +41,7 @@ function toBase62(buffer) {
   return out;
 }
 
-function generateSlug(size = 6) {
+function generateSlug(size = 4) {
   return toBase62(crypto.randomBytes(size)).slice(0, size + 2);
 }
 
@@ -58,7 +58,7 @@ function normalizeInput(raw) {
 
 function createUniqueSlug() {
   for (let i = 0; i < 10; i += 1) {
-    const slug = generateSlug(5);
+    const slug = generateSlug(4);
     if (!findBySlug.get(slug)) return slug;
   }
   throw new Error('Could not generate unique slug');
