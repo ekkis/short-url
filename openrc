@@ -3,8 +3,10 @@
 name="short-url"
 description="URL Shortener Service"
 
-command="/usr/bin/node"
-command_args="/var/www/short-url/server.js"
+# Use env as the supervised command so OpenRC does not mistake another
+# Node.js process for this service when matching the executable.
+command="/usr/bin/env"
+command_args="NODE_ENV=production /usr/bin/node /var/www/short-url/server.js"
 command_user="shorturl:shorturl"
 directory="/var/www/short-url"
 
