@@ -68,6 +68,16 @@ function isUrl(str) {
   return /^https?:\/\//i.test(str) || /^[^\s\/]+\.[^\s\/]+/i.test(str);
 }
 
+function createShortUrl(rawUrl) {
+  const longUrl = normalizeInput(rawUrl);
+  const existing = findByLongUrl.get(longUrl);
+  if (existing) return `${BASE_URL}/u/${existing.slug}`;
+
+  const slug = createUniqueSlug();
+  insertUrl.run(slug, longUrl);
+  return `${BASE_URL}/u/${slug}`;
+}
+
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
@@ -181,7 +191,7 @@ app.get('/u', (_req, res) => {
 
             const encoded = encodeURIComponent(rawUrl);
             try {
-                const response = await fetch('/u/' + encoded);
+                const response = await fetch('/u/create?url=' + encoded);
                 if (!response.ok) {
                     const text = await response.text();
                     alert(text || 'Unable to shorten URL');
@@ -231,6 +241,14 @@ app.get('/u', (_req, res) => {
   res.send(html);
 });
 
+app.get('/u/create', (req, res) => {
+  try {
+    return res.send(createShortUrl(String(req.query.url || '')));
+  } catch (error) {
+    return res.status(400).send(`Error: ${error.message}`);
+  }
+});
+
 app.get('/u/*', (req, res) => {
   const rawParam = req.params[0];
   const param = decodeURIComponent(rawParam || '').trim();
@@ -238,16 +256,7 @@ app.get('/u/*', (req, res) => {
   // If it looks like a URL, create a short URL
   if (isUrl(param) || param.includes('/')) {
     try {
-      const longUrl = normalizeInput(param);
-      const existing = findByLongUrl.get(longUrl);
-      if (existing) {
-        return res.send(`${BASE_URL}/u/${existing.slug}`);
-      }
-
-      const slug = createUniqueSlug();
-      insertUrl.run(slug, longUrl);
-
-      return res.send(`${BASE_URL}/u/${slug}`);
+      return res.send(createShortUrl(param));
     } catch (error) {
       return res.status(400).send(`Error: ${error.message}`);
     }
