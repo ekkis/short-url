@@ -11,13 +11,7 @@ directory="/var/www/short-url"
 # Keep a service-specific pidfile separate from any legacy short-url state.
 pidfile="/run/short-url/short-url.pid"
 
-# supervise-daemon matches this service by its command and pidfile, avoiding
-# collisions with other Node.js applications on the host.
-supervisor="supervise-daemon"
-respawn_delay=5
-respawn_max=0
-output_log="/var/log/short-url.log"
-error_log="/var/log/short-url.log"
+command_background=true
 
 # Environment variables
 export PORT=3000
