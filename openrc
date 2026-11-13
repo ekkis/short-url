@@ -10,7 +10,8 @@ command_args="NODE_ENV=production /usr/bin/node /var/www/short-url/server.js"
 command_user="shorturl:shorturl"
 directory="/var/www/short-url"
 
-pidfile="/run/${RC_SVCNAME}.pid"
+# Keep a service-specific pidfile separate from any legacy short-url state.
+pidfile="/run/short-url/short-url.pid"
 
 # supervise-daemon matches this service by its command and pidfile, avoiding
 # collisions with other Node.js applications on the host.
@@ -33,6 +34,6 @@ depend() {
 
 # Pre-start checks
 start_pre() {
-    checkpath -d -o shorturl:shorturl /run
+    checkpath -d -m 0755 -o shorturl:shorturl /run/short-url
     checkpath -d -o shorturl:shorturl /var/lib/short-url
 }
