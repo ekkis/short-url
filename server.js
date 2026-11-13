@@ -28,15 +28,16 @@ const findBySlug = db.prepare('SELECT slug, long_url, created_at, hit_count FROM
 const findByLongUrl = db.prepare('SELECT slug, long_url, created_at, hit_count FROM urls WHERE long_url = ?');
 const incrementHits = db.prepare('UPDATE urls SET hit_count = hit_count + 1 WHERE slug = ?');
 
-const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyz';
 
 function toBase62(buffer) {
   let value = BigInt('0x' + buffer.toString('hex'));
   if (value === 0n) return '0';
   let out = '';
   while (value > 0n) {
-    out = BASE62[Number(value % 62n)] + out;
-    value /= 62n;
+    const radix = BigInt(BASE62.length);
+    out = BASE62[Number(value % radix)] + out;
+    value /= radix;
   }
   return out;
 }
